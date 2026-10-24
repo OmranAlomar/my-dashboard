@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      // عدّل قائمة البريد لتشمل المستخدمين المسموح لهم فقط (أقل من 10)
+      function allowed() {
+        return request.auth != null
+          && request.auth.uid == uid
+          && request.auth.token.email in [
+            'user1@example.com',
+            'user2@example.com'
+          ];
+      }
+      allow read: if allowed();
+      allow write: if allowed()
+        && request.resource.data.keys().hasOnly(['mem'])
+        && request.resource.data.mem is string
+        && request.resource.data.mem.size() < 900000;
+    }
+  }
+}
