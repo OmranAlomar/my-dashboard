@@ -1,7 +1,7 @@
 window.startApp=function(blob,username){
 /* ===== الإعدادات والتخزين ===== */
 const SETTINGS={minutes:90,warnHour:8,earlyHour:4};
-const KEY={start:'start_date',mode:'play_mode',log:'done_log',apikey:'yt_api_key_'+username,series:'series_v3',course:'course_',notes:'notes_',done:'completed_days'};
+const KEY={pause:'pause_on_leave',start:'start_date',mode:'play_mode',log:'done_log',apikey:'yt_api_key_'+username,series:'series_v3',course:'course_',notes:'notes_',done:'completed_days'};
 const DAY_NAMES=['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const DAY_ORDER=[6,0,1,2,3,4,5];
 const $=id=>document.getElementById(id);
@@ -392,13 +392,85 @@ function hourHint(){
   $('hourMsg').textContent=hr<SETTINGS.earlyHour?'ما زال الليل، فاغتنم السحر':(hr>=SETTINGS.warnHour?'تجاوزتَ وقت البكور، لكن ما فات يُدرك':'');
 }
 
-/* ===== الملاحظات ===== */
-const noteKey=KEY.notes+dayKey;
-$('notes').value=store.get(noteKey,'');
-let nt;$('notes').addEventListener('input',()=>{
-  clearTimeout(nt);
-  nt=setTimeout(()=>{$('saved').textContent=store.set(noteKey,$('notes').value)?'تم الحفظ تلقائياً':'تعذّر الحفظ في هذا المتصفح'},400);
+/* إيقاف المؤقت عند مغادرة الصفحة (تبديل التبويب أو التطبيق أو قفل الشاشة) */
+$('pauseLeave').checked=store.get(KEY.pause,true);
+$('pauseLeave').onchange=()=>store.set(KEY.pause,$('pauseLeave').checked);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'&&timer&&$('pauseLeave').checked){
+    clearInterval(timer);timer=null;
+    $('tStart').textContent='استئناف';
+    $('hourMsg').textContent='أُوقف المؤقت لأنك غادرت الصفحة';
+  }
 });
+
+/* ===== الملاحظات: محرّر تلخيص ===== */
+const noteKey=KEY.notes+dayKey,ta=$('notes');
+ta.value=store.get(noteKey,'');
+let nt;
+function updateCount(){
+  const v=ta.value,w=v.trim().split(/\s+/).filter(Boolean).length,p=v.split('\n').filter(l=>l.trim()).length;
+  $('nCount').textContent=`${w} كلمة · ${p} سطر`;
+}
+ta.addEventListener('input',()=>{
+  updateCount();clearTimeout(nt);
+  nt=setTimeout(()=>{$('saved').textContent=store.set(noteKey,ta.value)?'تم الحفظ':'تعذّر الحفظ'},500);
+});
+updateCount();
+function lineBounds(){const v=ta.value,s=ta.selectionStart;const a=v.lastIndexOf('\n',s-1)+1;let b=v.indexOf('\n',s);if(b<0)b=v.length;return[a,b]}
+function setText(v,pos){ta.value=v;ta.focus();ta.setSelectionRange(pos,pos);ta.dispatchEvent(new Event('input'))}
+function prefixLine(p){
+  const[a,b]=lineBounds(),line=ta.value.slice(a,b).replace(/^(#{1,2}\s|•\s|\d+\.\s)/,''),nl=p+line;
+  setText(ta.value.slice(0,a)+nl+ta.value.slice(b),a+nl.length);
+}
+function nextNum(){return((ta.value.slice(0,lineBounds()[0]).match(/^\d+\.\s/gm))||[]).length+1}
+function insertBlock(txt){
+  const v=ta.value,s=ta.selectionStart,pre=s>0&&v[s-1]!=='\n'?'\n':'',ins=pre+txt;
+  setText(v.slice(0,s)+ins+v.slice(ta.selectionEnd),s+ins.length);
+}
+function numberParas(){
+  let n=0;
+  setText(ta.value.split('\n').map(l=>{
+    const t=l.trim();
+    if(!t||/^(#|•)/.test(t)||/[:：]$/.test(t))return l;
+    n++;return n+'. '+t.replace(/^\d+\.\s*/,'');
+  }).join('\n'),ta.selectionStart);
+}
+const TEMPLATE='# عنوان الدرس: \nالفكرة الرئيسية:\n\n## العناصر\n1. \n2. \n\n## الفوائد والأدلة\n• \n\n## تطبيق عملي\n• \n\n## أسئلة وإشكالات\n• \n\nالخلاصة:\n';
+const TOOLS=[
+  [['عنوان',()=>prefixLine('# ')],['عنوان فرعي',()=>prefixLine('## ')],['فقرة مرقّمة',()=>prefixLine(nextNum()+'. ')],['نقطة',()=>prefixLine('• ')],['رقّم الفقرات',numberParas],['إلغاء الترقيم',()=>setText(ta.value.replace(/^\d+\.\s/gm,''),ta.selectionStart)]],
+  [['الفكرة الرئيسية',()=>insertBlock('الفكرة الرئيسية:\n')],['دليل',()=>insertBlock('الدليل: ')],['فائدة',()=>insertBlock('• فائدة: ')],['سؤال',()=>insertBlock('• سؤال: ')],['تطبيق عملي',()=>insertBlock('• تطبيق عملي: ')],['الخلاصة',()=>insertBlock('الخلاصة:\n')],['قالب تلخيص كامل',()=>insertBlock(TEMPLATE)]]
+];
+const tools=$('nTools'),editBtns=[];
+TOOLS.forEach(g=>{
+  const row=h('div',{class:'trow'});
+  g.forEach(([t,f])=>{const b=h('button',{type:'button',onclick:f},t);editBtns.push(b);row.append(b)});
+  tools.append(row);
+});
+const viewBtn=h('button',{type:'button',onclick:togglePreview},'معاينة'),copyBtn=h('button',{type:'button',onclick:copyNote},'نسخ');
+tools.append(h('div',{class:'trow'},viewBtn,copyBtn));
+function renderView(){
+  const box=$('nView');box.innerHTML='';
+  ta.value.split('\n').forEach(l=>{
+    const t=l.trim();if(!t)return;
+    if(t.startsWith('## '))box.append(h('h5',{},t.slice(3)));
+    else if(t.startsWith('# '))box.append(h('h4',{},t.slice(2)));
+    else if(/[:：]$/.test(t))box.append(h('p',{class:'lbl'},t));
+    else box.append(h('p',{},t));
+  });
+  if(!box.children.length)box.append(h('p',{class:'msg'},'لا يوجد نص بعد.'));
+}
+function togglePreview(){
+  const on=$('nView').hidden;
+  if(on)renderView();
+  $('nView').hidden=!on;ta.hidden=on;
+  editBtns.forEach(b=>b.disabled=on);
+  viewBtn.textContent=on?'تحرير':'معاينة';
+}
+async function copyNote(){
+  try{await navigator.clipboard.writeText(ta.value)}
+  catch(e){const was=ta.hidden;ta.hidden=false;ta.select();document.execCommand('copy');ta.hidden=was}
+  $('saved').textContent='تم النسخ';
+}
 
 /* ===== الإدارة ===== */
 let draft=null,editId=null;

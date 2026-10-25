@@ -142,3 +142,14 @@ main.panel{background:transparent;border:0;padding:0;display:grid;gap:12px;align
 .authbox form{width:min(380px,100%)}
 .authbox h1{margin:0 0 4px}
 @media(max-width:560px){header .row .msg{grid-column:1/-1}}
+
+/* ===== محرّر الفوائد ===== */
+.ntools{display:grid;gap:4px;margin-bottom:8px}
+.trow{display:flex;flex-wrap:wrap;gap:4px}
+.trow button{padding:2px 9px;min-height:32px;font-size:.82rem}
+.trow button:disabled{opacity:.4;cursor:default}
+#notes{min-height:200px;line-height:1.9}
+.nview{border:1px solid var(--line);border-radius:6px;padding:8px 12px;min-height:200px;max-height:420px;overflow:auto}
+.nview h4{font-family:var(--serif);font-size:1.25rem;margin:10px 0 4px;color:var(--sun)}
+.nview h5{font-family:var(--serif);font-size:1.08rem;margin:10px 0 2px}
+.nview p{margin:4px 0}.nview p.lbl{font-weight:600;color:var(--sun)}

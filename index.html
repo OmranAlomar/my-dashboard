@@ -2,7 +2,15 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0e1a2c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="اغتنم وقتك">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>منصة اغتنم وقتك</title>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -24,8 +32,13 @@
 <div class="wrap" id="appRoot" hidden>
 <header>
   <h1>منصة اغتنم وقتك</h1>
-  <div class="row"><span class="meta" id="dateLine"></span><span class="meta" id="userChip"></span><span class="msg" id="syncState"></span><button id="modeBtn"></button><button id="logoutBtn">خروج</button><button id="mgrBtn">إدارة السلاسل والروابط</button></div>
+  <div class="row"><span class="meta" id="dateLine"></span><span class="meta" id="userChip"></span><span class="msg" id="syncState"></span><button id="installBtn" hidden>📲 تثبيت التطبيق</button><button id="modeBtn"></button><button id="logoutBtn">خروج</button><button id="mgrBtn">إدارة السلاسل والروابط</button></div>
 </header>
+
+<div class="current" id="iosHint" hidden>
+  <p class="msg">لتثبيت التطبيق على الآيفون: اضغط زر المشاركة (⬆︎) في Safari ثم «إضافة إلى الشاشة الرئيسية».</p>
+  <button id="iosHintClose">حسناً</button>
+</div>
 
 <section class="hero">
   <svg viewBox="0 0 520 175" aria-hidden="true">
@@ -51,11 +64,14 @@
         <button id="tReset">إعادة</button>
       </div>
       <div class="msg" id="hourMsg" style="text-align:center"></div>
+      <label class="msg row" style="justify-content:center;margin-top:6px"><input type="checkbox" id="pauseLeave"> إيقاف المؤقت عند مغادرة الصفحة</label>
     </div>
     <div class="panel">
       <h3>فوائد اليوم</h3>
+      <div class="ntools" id="nTools" role="toolbar" aria-label="أدوات التلخيص"></div>
       <textarea id="notes" placeholder="اكتب ما استفدته من المقطع…"></textarea>
-      <div class="msg" id="saved"></div>
+      <div class="nview" id="nView" hidden></div>
+      <div class="row" style="justify-content:space-between"><span class="msg" id="nCount"></span><span class="msg" id="saved"></span></div>
     </div>
   </aside>
 </div>
@@ -116,6 +132,7 @@
 </section>
 </div>
 
+<script src="pwa.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
 <script src="auth.js"></script>
